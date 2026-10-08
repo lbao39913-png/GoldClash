@@ -1,4 +1,4 @@
-name: build-goldx
+name: build-goldclash
 on:
   workflow_dispatch:
   push:
@@ -19,27 +19,22 @@ jobs:
           repository: chen08209/FlClash
           submodules: recursive
           path: src
-      - name: Checkout self
-        uses: actions/checkout@v4
-        with:
-          path: self
-      - name: Apply GoldX patch
+      - name: Apply GoldClash patch
         run: |
-          sudo apt-get install -y -qq python3-pil
           cat > /tmp/apply.sh <<'PATCH'
           #!/usr/bin/env bash
-          # GoldX: black-gold glass reskin of FlClash
+          # GoldClash: black-gold glass reskin of FlClash
           set -euxo pipefail
           cd "$1"
           # gold primary + app name
           sed -i 's/^const defaultPrimaryColor = .*/const defaultPrimaryColor = 0xFFD4AF37;/' lib/common/constant.dart
-          sed -i "s/^const appName = .*/const appName = 'GoldX';/" lib/common/constant.dart
+          sed -i "s/^const appName = .*/const appName = 'GoldClash';/" lib/common/constant.dart
           sed -i 's/^const defaultPrimaryColors = \[/const defaultPrimaryColors = [\n  0xFFD4AF37,\n  0xFFB8860B,\n  0xFFE6C068,/' lib/common/constant.dart
           # dark + pure black by default
           sed -i 's/^const defaultThemeProps = ThemeProps(primaryColor: defaultPrimaryColor);/const defaultThemeProps = ThemeProps(primaryColor: defaultPrimaryColor, pureBlack: true, themeMode: ThemeMode.dark);/' lib/models/config.dart
           grep -q "pureBlack: true, themeMode" lib/models/config.dart
           # launcher label
-          sed -i 's#<string name="app_name">FlClash</string>#<string name="app_name">GoldX</string>#' android/common/src/main/res/values/strings.xml
+          sed -i 's#<string name="app_name">FlClash</string>#<string name="app_name">GoldClash</string>#' android/common/src/main/res/values/strings.xml
           # glass cards / bars in dark theme
           python3 - <<'PY'
           import re
@@ -70,30 +65,8 @@ jobs:
           s=s.replace(old,new)
           open(p,'w').write(s)
           PY
-          # custom launcher icon from ../self/icon.png
-          ICON="$2"
-          if [ -f "$ICON" ]; then
-          python3 - "$ICON" <<'PY'
-          import sys,os,glob
-          from PIL import Image, ImageDraw
-          src=Image.open(sys.argv[1]).convert('RGBA')
-          res='android/app/src/main/res'
-          for f in glob.glob(res+'/mipmap-anydpi-v26/ic_launcher*.xml'): os.remove(f)
-          sizes={'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}
-          for d,s in sizes.items():
-              for f in glob.glob(f'{res}/mipmap-{d}/ic_launcher*.webp'): os.remove(f)
-              im=src.resize((s,s),Image.LANCZOS)
-              # rounded square
-              m=Image.new('L',(s,s),0); ImageDraw.Draw(m).rounded_rectangle((0,0,s-1,s-1),radius=int(s*0.22),fill=255)
-              a=im.copy(); a.putalpha(m); a.save(f'{res}/mipmap-{d}/ic_launcher.png')
-              m2=Image.new('L',(s,s),0); ImageDraw.Draw(m2).ellipse((0,0,s-1,s-1),fill=255)
-              b=im.copy(); b.putalpha(m2); b.save(f'{res}/mipmap-{d}/ic_launcher_round.png')
-          src.resize((512,512),Image.LANCZOS).save('assets/images/icon.png')
-          print('icon replaced')
-          PY
-          fi
           PATCH
-          bash /tmp/apply.sh src "$GITHUB_WORKSPACE/self/icon.png"
+          bash /tmp/apply.sh src
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -127,5 +100,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: GoldX build ${{ github.run_number }}
+          name: GoldClash build ${{ github.run_number }}
           files: src/dist/*.apk
